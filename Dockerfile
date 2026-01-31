@@ -1,7 +1,7 @@
 # n8n on Cloud Run with GCS Volume Mount
 # Optimized for personal use with SQLite persistence
 
-FROM n8nio/n8n:latest
+FROM n8nio/n8n:2.3.0
 
 # n8n runs as 'node' user (uid=1000, gid=1000)
 # GCS volume mount must match these permissions
@@ -39,5 +39,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 EXPOSE 5678
 
-# Default command (inherited from base image)
-CMD ["n8n"]
+# Inherit CMD from base image (uses docker-entrypoint.sh)

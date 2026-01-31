@@ -192,14 +192,14 @@ configure_iam() {
 # DEPLOY TO CLOUD RUN
 # =============================================================================
 deploy_cloud_run() {
-    log_info "Deploying to Cloud Run (using pre-built n8n image)..."
+    log_info "Building and deploying to Cloud Run..."
 
     PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
 
     gcloud run deploy "$SERVICE_NAME" \
         --project="$PROJECT_ID" \
         --region="$REGION" \
-        --image=n8nio/n8n:latest \
+        --source=. \
         --port=5678 \
         --memory="$MEMORY" \
         --cpu="$CPU" \
@@ -208,7 +208,6 @@ deploy_cloud_run() {
         --no-cpu-throttling \
         --execution-environment=gen2 \
         --allow-unauthenticated \
-        --set-env-vars="GENERIC_TIMEZONE=Europe/Rome,TZ=Europe/Rome,N8N_PORT=5678,N8N_PROTOCOL=https,N8N_SECURE_COOKIE=true,DB_TYPE=sqlite,N8N_BLOCK_ENV_ACCESS_IN_NODE=true,N8N_DIAGNOSTICS_ENABLED=false" \
         --set-secrets="N8N_ENCRYPTION_KEY=n8n-encryption-key:latest" \
         --add-volume=name=n8n-data,type=cloud-storage,bucket="$BUCKET_NAME" \
         --add-volume-mount=volume=n8n-data,mount-path=/home/node/.n8n
