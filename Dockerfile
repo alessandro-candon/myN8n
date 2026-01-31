@@ -1,7 +1,7 @@
 # n8n on Cloud Run with GCS Volume Mount
 # Optimized for personal use with SQLite persistence
 
-FROM n8nio/n8n:latest
+FROM n8nio/n8n:stable
 
 # n8n runs as 'node' user (uid=1000, gid=1000)
 # GCS volume mount must match these permissions
@@ -15,6 +15,9 @@ ENV N8N_PORT=5678
 ENV N8N_PROTOCOL=https
 ENV N8N_SECURE_COOKIE=true
 ENV N8N_RUNNERS_ENABLED=true
+ENV N8N_RUNNERS_MODE=internal
+ENV NODES_EXCLUDE=[]
+
 
 # Database configuration - SQLite (default)
 ENV DB_TYPE=sqlite

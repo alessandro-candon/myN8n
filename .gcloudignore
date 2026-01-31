@@ -1,0 +1,12 @@
+# Ignore git files
+.git
+.gitignore
+
+# Ignore local files
+.DS_Store
+*.log
+*.tmp
+
+# Ignore IDE files
+.vscode
+.idea
