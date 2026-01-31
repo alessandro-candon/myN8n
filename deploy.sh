@@ -11,12 +11,16 @@ set -e
 # =============================================================================
 PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project)}"
 SERVICE_NAME="${SERVICE_NAME:-n8n}"
+REGION="${REGION:-europe-west8}"  # Default: Milan, Italy
 
 # Resource configuration (optimized for personal use)
 MEMORY="${MEMORY:-1Gi}"
 CPU="${CPU:-1}"
 MIN_INSTANCES="${MIN_INSTANCES:-0}"
 MAX_INSTANCES="${MAX_INSTANCES:-1}"
+
+# Bucket name
+BUCKET_NAME="${PROJECT_ID}-n8n-data"
 
 # =============================================================================
 # COLORS FOR OUTPUT
@@ -237,7 +241,7 @@ main() {
     echo ""
 
     preflight_checks
-    select_region
+    log_info "Using region: $REGION (Milan, Italy)"
     enable_apis
     create_bucket
     create_encryption_key

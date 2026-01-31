@@ -1,7 +1,7 @@
 # n8n on Cloud Run with GCS Volume Mount
 # Optimized for personal use with SQLite persistence
 
-FROM n8nio/n8n:stable
+FROM n8nio/n8n:latest
 
 # n8n runs as 'node' user (uid=1000, gid=1000)
 # GCS volume mount must match these permissions
