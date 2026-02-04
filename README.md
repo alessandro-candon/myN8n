@@ -6,25 +6,11 @@ Deploy [n8n](https://n8n.io/) workflow automation on Google Cloud Run with persi
 
 - **Cost-effective**: Scale to zero when not in use (~$0-5/month for light usage)
 - **Persistent storage**: SQLite database stored in GCS bucket (survives restarts/redeploys)
+- **Robust SQLite WAL recovery**: WAL mode enabled, automatic checkpoint and recovery on shutdown/startup
+- **Graceful shutdown**: Prevents data loss and lock issues by checkpointing WAL and syncing filesystem
+- **FFmpeg static binary**: Installed in the container, available for media workflows (no package manager required)
 - **Secure**: Encryption key stored in Secret Manager, HTTPS by default
 - **Simple**: One-command deployment
-
-## 📋 Prerequisites
-
-1. **Google Cloud Account** with billing enabled
-2. **gcloud CLI** installed and authenticated
-3. **Project** created in GCP
-
-```bash
-# Install gcloud (macOS)
-brew install google-cloud-sdk
-
-# Authenticate
-gcloud auth login
-
-# Set your project
-gcloud config set project YOUR_PROJECT_ID
-```
 
 ## 🚀 Quick Start
 
@@ -98,7 +84,7 @@ export BUCKET_NAME="my-n8n-data"
 
 > 💡 Free tier includes 2M Cloud Run requests/month and 5GB GCS storage.
 
-## ⚠️ Important Limitations
+## ⚠️ Important Limitations & Recovery Features
 
 ### Single Instance Only
 
@@ -108,13 +94,30 @@ This setup uses **SQLite** with GCS FUSE volume mount. GCS FUSE does **not suppo
 - ❌ **DO NOT** increase `max-instances` above 1 (database corruption risk)
 - ❌ **DO NOT** run multiple services accessing the same bucket
 
-### Cold Starts
+### Cold Starts & WAL Recovery
 
 With `--min-instances=0` (default), expect:
 
 - **10-30 second delay** on first request after idle period
 - Webhooks may timeout during cold start
 - Solution: Set `--min-instances=1` if you need instant response (costs ~$15-25/month more)
+
+#### WAL Mode & Graceful Shutdown
+
+- **WAL mode is enabled for better performance and crash recovery.**
+- On shutdown (SIGTERM from Cloud Run), the wrapper script:
+  - Sends SIGTERM to n8n and waits for graceful exit
+  - Runs a SQLite WAL checkpoint (`PRAGMA wal_checkpoint(TRUNCATE)`) using Node.js `sqlite3` package
+  - Flushes all pending transactions from WAL to the main database file
+  - Calls `sync` to ensure GCS FUSE writes are persisted
+- On startup, if WAL/SHM files exist (from a previous crash), the script attempts to recover all data by checkpointing WAL before starting n8n.
+- This prevents data loss and database lock issues common with network filesystems and Cloud Run cold starts.
+
+#### FFmpeg Support
+
+- FFmpeg is installed as a static binary during the Docker build (no package manager required)
+- You can use FFmpeg in n8n workflows and custom scripts inside the container
+- Path: `/usr/local/bin/ffmpeg`
 
 ## 🔧 Configuration
 
@@ -228,6 +231,16 @@ SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 gcloud storage buckets get-iam-policy gs://YOUR_BUCKET_NAME \
     --format="table(bindings.role,bindings.members)"
 ```
+
+### Database Lock or Data Loss
+
+- If you see database lock errors, try restarting the service or increasing the Cloud Run timeout (default is 60s for graceful shutdown)
+- For persistent issues, check the logs for GCS FUSE mount errors or SQLite WAL/SHM files
+- WAL/SHM files are automatically checkpointed and recovered on startup; manual deletion is rarely needed
+
+### FFmpeg Errors
+
+- Make sure your workflow calls `/usr/local/bin/ffmpeg` (already in PATH)
 
 ### Database Corruption
 

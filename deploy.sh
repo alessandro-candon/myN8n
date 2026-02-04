@@ -196,6 +196,7 @@ deploy_cloud_run() {
 
     PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
 
+    # First deployment (or update)
     gcloud run deploy "$SERVICE_NAME" \
         --project="$PROJECT_ID" \
         --region="$REGION" \
@@ -205,6 +206,7 @@ deploy_cloud_run() {
         --cpu="$CPU" \
         --min-instances="$MIN_INSTANCES" \
         --max-instances="$MAX_INSTANCES" \
+        --timeout=60 \
         --no-cpu-throttling \
         --execution-environment=gen2 \
         --allow-unauthenticated \
@@ -212,12 +214,20 @@ deploy_cloud_run() {
         --add-volume=name=n8n-data,type=cloud-storage,bucket="$BUCKET_NAME" \
         --add-volume-mount=volume=n8n-data,mount-path=/home/node/.n8n
 
-    log_success "Deployed to Cloud Run"
-
+    # Get the service URL
     SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
         --project="$PROJECT_ID" \
         --region="$REGION" \
         --format="value(status.url)")
+
+    # Update with WEBHOOK_URL for Telegram and other webhooks
+    log_info "Setting WEBHOOK_URL to $SERVICE_URL..."
+    gcloud run services update "$SERVICE_NAME" \
+        --project="$PROJECT_ID" \
+        --region="$REGION" \
+        --set-env-vars="WEBHOOK_URL=${SERVICE_URL}"
+
+    log_success "Deployed to Cloud Run"
 
     echo ""
     log_success "=========================================="
